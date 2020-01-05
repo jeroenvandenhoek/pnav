@@ -1,3 +1,6 @@
+use std::env;
+use pnav;
 fn main() {
-    println!("Hello, world!");
+    pnav::run(env::args().collect())
 }
+
