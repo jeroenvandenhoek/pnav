@@ -1,51 +1,40 @@
 
 use std::fs;
 
-/// Gets the project folder that corresponds to the project code.
+/// fetches the project folder from the input_root_path that corresponds to the project code.
 // returns Some()
-pub fn get_project_folder(project_code: &str) -> Option<fs::DirEntry> {
-    let path: &str = "/var";
-
-    let filter_closure = | dir_entry: Result<fs::DirEntry, &std::error::Error> | {
-        let pcb = &project_code.as_bytes();
-
-        let dir_str = match dir_entry {
-            Ok(dir_str) => dir_str,
-            Err(_) => panic!("could not read directory name")
+pub fn get_project_input_folder(project_code: &str, input_root_path: &str) -> fs::DirEntry {
+    // closure that filters directories to find the directory
+    // that corresponds to the project code
+    let find_input_dir = | dir: &fs::DirEntry | {
+        let dir_name = dir.file_name();
+        let dir_name = match dir_name.to_str() {
+            Some(name) => name,
+            None => ""
         };
-
-        let mut dir_str = dir_str.file_name();
-        let dir_str = dir_str.to_str();
-        let dirb = match dir_str {
-            Some(dir_str) => dir_str.as_bytes(),
-            None => panic!("directory name could not be converted to a str"),
-        };
-
-
-        for compare in pcb.iter().zip(dirb) {
-            if compare.0 != compare.1 {
-                return false
-            }
+        if dir_name.contains(project_code) {
+            true
+        } else {
+            false
         }
-        true
     };
 
+    // fetch the root directory from the input_root_path
+    let root_dir = match fs::read_dir(input_root_path) { 
+        Ok(val) => val,
+        Err(message) => panic!(message)
+    };
 
-    let mut project_dir: () = fs::read_dir(path)
-        .iter()
-        .filter(|x| {
-            println!("{:?}", x);
-            true
-        })
-        .collect();
+    // cycle through list of directories to find the projects input directory
+    let mut input_dir: Vec<fs::DirEntry> = root_dir.map(|x| {
+        match x {
+            Ok(val) => val,
+            Err(_) => panic!("no input directory found")
+        }
+    }).filter(find_input_dir).collect();
 
-
-
-
-
-
-
-
-    None
-}
-    
+    match input_dir.pop() {
+        Some(val) => val,
+        None => panic!("no dir found")
+    }
+} 
