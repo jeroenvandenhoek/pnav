@@ -1,4 +1,8 @@
+use std::fs;
 
-pub fn manip_pnavrc() {
-    println!("Hello, mister!");
-}
+pub fn create_pnavrc() {}
+
+pub fn write_pnavrc() {}
+
+pub fn read_pnavrc() {}
+
