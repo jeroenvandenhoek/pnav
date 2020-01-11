@@ -8,7 +8,7 @@ mod create_project_directories;
 
 /// runs the pnav program
 pub fn run(args: Vec<String>) {
-    manipulate_pnavrc::read_pnavrc();
+    manipulate_pnavrc::test_program();
     let client_input_folder: Result<fs::DirEntry, _> = navigate_folders::get_project_input_folder("150", "/root/pnav_project_root_for_testing");
     let project_input_folder: Result<fs::DirEntry, _> = navigate_folders::get_project_input_folder("150001", "/root/pnav_project_root_for_testing");
 
