@@ -11,7 +11,7 @@ documentation = "..."
 homepage = "..."
 repository = "..."
 
-readme = "..."
+readme = "ReadMe.md"
 
 keywords = ["...", "..."]
 
