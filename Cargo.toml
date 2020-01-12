@@ -7,13 +7,13 @@ edition = "2018"
 # metadata
 description = "A b2b tool for project navigation (currently in development)."
 
-documentation = "..."
-homepage = "..."
-repository = "..."
+# documentation = "..."
+# homepage = "..."
+# repository = "..."
 
 readme = "ReadMe.md"
 
-keywords = ["...", "..."]
+## keywords = ["...", "..."]
 
 categories = ["command-line-utilities", "filesystem"]
 
