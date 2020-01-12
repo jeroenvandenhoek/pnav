@@ -6,8 +6,8 @@ use std::io::Read;
 #[derive(Debug)]
 pub struct Settings <'a> {
     pnavrc_file_path: &'a str,
-    pub path_to_input_database: &'a mut str,
-    pub current_project_code: &'a mut str,
+    pub path_to_input_database: &'a str,
+    pub current_project_code: &'a str,
 }
 
 impl<'a> Settings<'a> {
@@ -56,7 +56,7 @@ impl<'a> Settings<'a> {
 }
 
 pub fn test_program() {
-    let Settings = Settings::new("002001");
+    let mut Settings = Settings::new("002001");
     Settings.read_pnavrc();
 
 }
