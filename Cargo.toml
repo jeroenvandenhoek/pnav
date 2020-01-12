@@ -1,8 +1,25 @@
 [package]
 name = "pnav"
 version = "0.1.0"
-authors = ["root"]
+authors = ["Jeroen"]
 edition = "2018"
+
+# metadata
+description = "A b2b tool for project navigation (currently in development)."
+
+documentation = "..."
+homepage = "..."
+repository = "..."
+
+readme = "..."
+
+keywords = ["...", "..."]
+
+categories = ["command-line-utilities", "filesystem"]
+
+license = "MIT"
+
+maintenance = { status = "actively-developed"}
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
