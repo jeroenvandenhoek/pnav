@@ -1,7 +1,9 @@
 use std::error::Error;
+use std::env;
+use std::env::args;
 
 pub struct Input <'a> {
-    arguments: Option<Vec<&'a str>>,
+    arguments: Option<Vec<String>>,
     flags_general: Option<Vec<&'a str>>,
     flags_targeting_project: Option<Vec<&'a str>>,
     flags_targeting_production: Option<Vec<&'a str>>,
@@ -25,14 +27,26 @@ impl<'a> Input <'a>{
         }; 
 
         Input.parse_args();
+        println!("collected arguments: {:?}", &Input.arguments);
 
         Input
     }
 }
 impl<'a> Input<'a> {
-    fn parse_args(&mut self) -> Option<Vec<&str>> {
+    fn parse_args(&mut self) {
+        // collect arguments and filter out all the flags
+        let args = args();
+        let mut args: Vec<String> = args.filter(|x| !x.starts_with("-")).collect();
 
-        None
+        // remove the path from the arguments
+        args.remove(0);
+
+        // if there are no arguments; return None,
+        // otherwise return the arguments in Some
+        self.arguments = match args.len() {
+            0 => None,
+            _ => Some(args)
+        };
     }
     fn parse_flags(&mut self) {}
     fn iparse_config(&mut self) {}

@@ -4,4 +4,5 @@ mod input;
 
 /// runs the pnav program
 pub fn run() {
+    input::Input::get();
 }
