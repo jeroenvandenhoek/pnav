@@ -47,7 +47,7 @@ impl<'a> Input {
 
         // combine possible "new" argument with the following argument
         // step 1: check at which index "add" or "new" is
-        let index_of_add_or_new: Option<usize> = args.iter().rposition(| x | {
+        let mut index_of_add_or_new: Option<usize> = args.iter().rposition(| x | {
             x.to_lowercase() == "new" || x.to_lowercase() == "add"
         });
 
@@ -68,8 +68,12 @@ impl<'a> Input {
         // insert grouped.. into args and
         // remove the separate arguments (new, and following)
         // otherwise don't do anything
-        panic!("\n\nhier was je jj!!!!\n\n");
-
+        if (grouped_add_or_new != None){
+            let index = index_of_add_or_new.expect("No index for 'add' or 'new' found");
+            args.remove(index+1);
+            args.remove(index);
+            args.insert(0,grouped_add_or_new.expect("No 'add' or 'new' group found."));
+        }
 
         // if there are no arguments; return None,
         // otherwise return the arguments in Some
