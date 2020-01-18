@@ -29,7 +29,14 @@ impl<'a> Input{
         }; 
 
         Input.parse_args();
+        Input.parse_flags();
+
         println!("collected arguments: {:?}", &Input.arguments);
+        println!("collected flags_general: {:?}", &Input.flags_general);
+        println!("collected flags_targeting_project: {:?}",
+            &Input.flags_targeting_project);
+        println!("collected flags_targeting_production: {:?}",
+            &Input.flags_targeting_production);
 
         Input.get_config();
 
@@ -82,7 +89,14 @@ impl<'a> Input {
             _ => Some(args)
         };
     }
-    fn parse_flags(&mut self) {}
+    fn parse_flags(&mut self) {
+        // collect arguments and filter out everything but the flags
+        let args = args();
+        let flags: Vec<String> = args.filter(|x| x.starts_with("-")).collect();
+
+        let long_flags: Vec<String> = flags.iter().filter(| x | x.starts_with("--")).collect();
+        println!("\n\nthis is where you left it JJ!!!!!\n\n");
+    }
     fn parse_config(&mut self) {}
     fn get_config(&mut self) -> Option<String>{
         let pnavrc: Option<String> = match fs::read_to_string("~/.pnavrc"){
