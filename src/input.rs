@@ -45,6 +45,32 @@ impl<'a> Input {
         // remove the path from the arguments
         args.remove(0);
 
+        // combine possible "new" argument with the following argument
+        // step 1: check at which index "add" or "new" is
+        let index_of_add_or_new: Option<usize> = args.iter().rposition(| x | {
+            x.to_lowercase() == "new" || x.to_lowercase() == "add"
+        });
+
+        // if add or new is present in the vector:
+        // create a group with the argument that follows (if that)
+        let grouped_add_or_new: Option<String> = match &index_of_add_or_new {
+            Some(index) => {
+                if (index+1 <= args.len()){
+                    Some(format!("{} {}", args[*index], args[*index+1]))
+                }else{
+                    None
+                }
+            },
+            None => None
+        };
+
+        // if grouped_add_or_new is not none:
+        // insert grouped.. into args and
+        // remove the separate arguments (new, and following)
+        // otherwise don't do anything
+        panic!("\n\nhier was je jj!!!!\n\n");
+
+
         // if there are no arguments; return None,
         // otherwise return the arguments in Some
         self.arguments = match args.len() {
