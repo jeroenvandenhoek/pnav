@@ -1,14 +1,13 @@
 use std::error::Error;
-use std::env;
 use std::env::args;
 use std::fs;
 use dirs;
 
 pub struct Input{
     arguments: Option<Vec<String>>,
-    flags_general: Option<Vec<String>>,
-    flags_targeting_project: Option<Vec<String>>,
-    flags_targeting_production: Option<Vec<String>>,
+    flags_general: Option<Vec<char>>,
+    flags_targeting_project: Option<Vec<char>>,
+    flags_targeting_production: Option<Vec<char>>,
     config_project_root: Option<String>,
     config_production_roots: Option<Vec<String>>,
     config_active_project: Option<String>,
@@ -17,7 +16,7 @@ pub struct Input{
 
 impl<'a> Input{
     pub fn get() -> Input{
-        let mut Input = Input{
+        let mut input = Input{
             arguments: None,
             flags_general: None,
             flags_targeting_project: None,
@@ -28,19 +27,19 @@ impl<'a> Input{
             config_company_name: None
         }; 
 
-        Input.parse_args();
-        Input.parse_flags();
+        input.parse_args();
+        input.parse_flags();
 
-        println!("collected arguments: {:?}", &Input.arguments);
-        println!("collected flags_general: {:?}", &Input.flags_general);
+        println!("collected arguments: {:?}", &input.arguments);
+        println!("collected flags_general: {:?}", &input.flags_general);
         println!("collected flags_targeting_project: {:?}",
-            &Input.flags_targeting_project);
+            &input.flags_targeting_project);
         println!("collected flags_targeting_production: {:?}",
-            &Input.flags_targeting_production);
+            &input.flags_targeting_production);
 
-        Input.get_config();
+        input.get_config();
 
-        Input
+        input
     }
 }
 impl<'a> Input {
@@ -54,7 +53,7 @@ impl<'a> Input {
 
         // combine possible "new" argument with the following argument
         // step 1: check at which index "add" or "new" is
-        let mut index_of_add_or_new: Option<usize> = args.iter().rposition(| x | {
+        let index_of_add_or_new: Option<usize> = args.iter().rposition(| x | {
             x.to_lowercase() == "new" || x.to_lowercase() == "add"
         });
 
@@ -62,7 +61,7 @@ impl<'a> Input {
         // create a group with the argument that follows (if that)
         let grouped_add_or_new: Option<String> = match &index_of_add_or_new {
             Some(index) => {
-                if (index+1 <= args.len()){
+                if index+1 <= args.len(){
                     Some(format!("{} {}", args[*index], args[*index+1]))
                 }else{
                     None
@@ -75,7 +74,7 @@ impl<'a> Input {
         // insert grouped.. into args and
         // remove the separate arguments (new, and following)
         // otherwise don't do anything
-        if (grouped_add_or_new != None){
+        if grouped_add_or_new != None {
             let index = index_of_add_or_new.expect("No index for 'add' or 'new' found");
             args.remove(index+1);
             args.remove(index);
@@ -89,13 +88,96 @@ impl<'a> Input {
             _ => Some(args)
         };
     }
-    fn parse_flags(&mut self) {
+    fn parse_flags(&mut self) -> Option<()>{
         // collect arguments and filter out everything but the flags
         let args = args();
-        let flags: Vec<String> = args.filter(|x| x.starts_with("-")).collect();
+        let flags: Vec<String> = args
+            .filter(|x| x.starts_with("-") && x != "--")
+            .collect();
 
-        let long_flags: Vec<String> = flags.iter().filter(| x | x.starts_with("--")).collect();
-        println!("\n\nthis is where you left it JJ!!!!!\n\n");
+        // stop this function if no flags are given by the user
+        if flags.len() == 0 {return None};
+
+        // get long flags
+        let long_flags: Vec<&String> = flags
+            .iter()
+            .filter(| x | x.starts_with("--"))
+            .collect();
+
+        // get short flag in raw form;
+        // meaning all short flags that follow a single hyphen,
+        // within the same argument
+        let short_flags_raw: Vec<&String> = flags
+            .iter()
+            .filter(| x | !x.starts_with("--"))
+            .collect();
+
+        // sepparate the shortflags to single chars
+        let mut short_flags: Vec<char> = Vec::new();
+        short_flags_raw
+            .iter()
+            .for_each(| x | {
+                let without_hyphen = x.replace('-', "");
+                without_hyphen
+                    .chars()
+                    .for_each(| x | {
+                        short_flags.push(x);
+                    })
+            });
+
+        // if there are long flags present;
+        // convert long flags to short flags
+        // and add them to list of short flags
+        if long_flags.len() == 0 {return None};
+        long_flags
+            .iter()
+            .for_each(| x |{
+                short_flags.push(match &x.to_lowercase()[..] {
+                    "--list" => 'l',
+                    "--help" => 'h',
+                    "--client" => 'c',
+                    "--supplier" => 's',
+                    "--internal" => 'i',
+                    "--assets" => 'a',
+                    "--projects" => 'p',
+                    "--delivery" => 'd',
+                    _ => 'X',  
+                })
+            });
+
+        // add short flags to corresponding categories
+        let mut general: Vec<char> = Vec::new();
+        let mut project: Vec<char> = Vec::new();
+        let mut production: Vec<char> = Vec::new();
+        short_flags.iter().for_each(| x | {
+            match *x {
+                'l' => general.push('l'),
+                'h' => general.push('h'),
+                'c' => project.push('c'),
+                's' => project.push('s'),
+                'i' => project.push('i'),
+                'a' => production.push('a'),
+                'p' => production.push('p'),
+                'd' => production.push('d'),
+                _ => ()
+            }
+
+        });
+
+        // write three flag categories to corresponding Struct fields as options
+        match general.len() {
+            0 => self.flags_general = None,
+            _ => self.flags_general = Some(general)
+        }
+        match project.len() {
+            0 => self.flags_targeting_project = None,
+            _ => self.flags_targeting_project = Some(project)
+        }
+        match production.len() {
+            0 => self.flags_targeting_production = None,
+            _ => self.flags_targeting_production = Some(production)
+        }
+        Some(())
     }
     fn parse_config(&mut self) {}
     fn get_config(&mut self) -> Option<String>{
@@ -113,7 +195,7 @@ impl<'a> Input {
 
         pnavrc
     }
-    fn write_config(&self) -> Result<String, Box<Error>>{
+    fn write_config(&self) -> Result<String, Box<dyn Error>>{
         // get home directory
         let home_dir = match dirs::home_dir() {
             Some(path_buf) => match path_buf.as_path().to_str(){
