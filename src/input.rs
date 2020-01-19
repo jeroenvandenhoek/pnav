@@ -3,21 +3,24 @@ use std::env::args;
 use std::fs;
 use dirs;
 
+#[derive(Debug)]
 pub struct Input{
-    arguments: Option<Vec<String>>,
-    flags_general: Option<Vec<char>>,
-    flags_targeting_project: Option<Vec<char>>,
-    flags_targeting_production: Option<Vec<char>>,
-    config_project_root: Option<String>,
-    config_production_roots: Option<Vec<String>>,
-    config_active_project: Option<String>,
-    config_company_name: Option<String>
+    pub arguments: Option<Vec<String>>,
+    pub arguments_contained_project_code: bool,
+    pub flags_general: Option<Vec<char>>,
+    pub flags_targeting_project: Option<Vec<char>>,
+    pub flags_targeting_production: Option<Vec<char>>,
+    pub config_project_root: Option<String>,
+    pub config_production_roots: Option<Vec<String>>,
+    pub config_active_project: Option<String>,
+    pub config_company_name: Option<String>
 }
 
 impl<'a> Input{
     pub fn get() -> Input{
         let mut input = Input{
             arguments: None,
+            arguments_contained_project_code: false,
             flags_general: None,
             flags_targeting_project: None,
             flags_targeting_production: None,
@@ -29,15 +32,13 @@ impl<'a> Input{
 
         input.parse_args();
         input.parse_flags();
-
-        println!("collected arguments: {:?}", &input.arguments);
-        println!("collected flags_general: {:?}", &input.flags_general);
-        println!("collected flags_targeting_project: {:?}",
-            &input.flags_targeting_project);
-        println!("collected flags_targeting_production: {:?}",
-            &input.flags_targeting_production);
-
         input.get_config();
+        input.parse_config();
+        match input.write_config() {
+            Ok(value)=> (),
+            Err(message) => panic!("unable to write to .pnavrc")
+        };
+        println!("{:?}",input.config_active_project);
 
         input
     }
@@ -80,6 +81,25 @@ impl<'a> Input {
             args.remove(index);
             args.insert(0,grouped_add_or_new.expect("No 'add' or 'new' group found."));
         }
+
+        // if project code was entered
+        // set active project to it (but also keep it in the args vector
+        // for program interpretor)
+        &args.iter().for_each(| a | {
+            if a.len() == 6 {
+                let mut is_valid: bool = true;
+                a.chars().for_each(| c | {
+                    if !(c.is_numeric() && is_valid) {
+                        is_valid = false
+                    }
+                });
+                
+                if is_valid {
+                    self.config_active_project = Some(String::from(a));
+                    self.arguments_contained_project_code = true;
+                }
+            }
+        });
 
         // if there are no arguments; return None,
         // otherwise return the arguments in Some
@@ -179,20 +199,56 @@ impl<'a> Input {
         }
         Some(())
     }
-    fn parse_config(&mut self) {}
-    fn get_config(&mut self) -> Option<String>{
-        let pnavrc: Option<String> = match fs::read_to_string("~/.pnavrc"){
-            Ok(content) => Some(content),
-            Err(_) => match self.write_config(){
-                Ok(content) => Some(content),
-                Err(message) => {
-                    //println!("{}","unable to write to .pnavrc");
-                    println!("{}",message);
-                    None
-                }
-            },
-        };
+    fn parse_config(&mut self) {
+        let config: String = self.get_config().expect("pnavrc not found");
 
+        config.lines().for_each(| l | {
+            // when line is active project and the code is of valid patern
+            // extract the project code and send it to corresponding struct field
+            match l.to_lowercase().replace(" ", "").contains("active_project=") {
+                true => {
+                    let mut project: Option<String> = None;
+                    l
+                    .to_lowercase()
+                    .replace(" ", "")
+                    .split("=")
+                    .for_each(| x | {
+                        if !x.contains("active_project") && x.len() == 6 {
+                            project = Some(String::from(x));
+                        }
+                    });
+                    if !self.arguments_contained_project_code {
+                        self.config_active_project = project;
+                    }
+                    println!("active project = {:?}",self.config_active_project);
+                },
+                false => (),
+            };
+
+            // when line is project_root_dir
+            // extract the dir and send it to the corresponding struct field
+            // - match -
+            //
+        });
+    }
+    fn get_config(&mut self) -> Option<String>{
+        let home_dir: String = String::from(dirs::home_dir()
+            .expect("could not get home_dir for current operating system")
+            .to_str()
+            .expect("could not create string from path_buf"));
+
+        let pnavrc: Option<String> =
+            match fs::read_to_string(format!("{}/.pnavrc",home_dir)){
+                Ok(content) => Some(content),
+                Err(_) => match self.write_config(){
+                    Ok(content) => Some(content),
+                    Err(message) => {
+                        //println!("{}","unable to write to .pnavrc");
+                        println!("{}",message);
+                        None
+                    }
+                },
+        };
         pnavrc
     }
     fn write_config(&self) -> Result<String, Box<dyn Error>>{
@@ -231,9 +287,9 @@ impl<'a> Input {
 
         // get active project code as &str from struct if it exists.
         // if it doesn't: set an empty &str
-        let active_project: &str = match &self.config_active_project {
-            Some(project) => project,
-            None => "",
+        let active_project: String = match &self.config_active_project {
+            Some(project) => format!("active_project = {}",project),
+            None => String::from(""),
         };
 
         // get name of user's company if it exist.
@@ -251,10 +307,17 @@ impl<'a> Input {
             company_name
             );
 
-        fs::write(format!("{}/.pnavrc",home_dir), content)?;
+        // clean up content formatting
+        let mut content_clean = String::new();
+        content.lines().for_each(| l | {
+            if l != "" {
+                content_clean = format!("{}\n{}", content_clean, l);
+            };
+        });
+
+        fs::write(format!("{}/.pnavrc",home_dir), content_clean)?;
         Ok(String::from("hi"))
     }
-
 }
 
 
