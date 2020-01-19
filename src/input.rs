@@ -38,7 +38,6 @@ impl<'a> Input{
             Ok(value)=> (),
             Err(message) => panic!("unable to write to .pnavrc")
         };
-        println!("{:?}",input.config_active_project);
 
         input
     }
@@ -220,15 +219,27 @@ impl<'a> Input {
                     if !self.arguments_contained_project_code {
                         self.config_active_project = project;
                     }
-                    println!("active project = {:?}",self.config_active_project);
                 },
                 false => (),
             };
 
             // when line is project_root_dir
             // extract the dir and send it to the corresponding struct field
-            // - match -
-            //
+            match l.to_lowercase().replace(" ", "").contains("projects_root_dir"){
+                true => {
+                    l
+                    .to_lowercase()
+                    .replace(" ", "")
+                    .split("=")
+                    .for_each(| x | {
+                        if !x.contains("projects_root_dir") {
+                            let projects_root = Some(String::from(x));
+                            self.config_project_root = projects_root;
+                        }
+                    });
+                },
+                false => ()
+            };
         });
     }
     fn get_config(&mut self) -> Option<String>{
@@ -243,9 +254,7 @@ impl<'a> Input {
                 Err(_) => match self.write_config(){
                     Ok(content) => Some(content),
                     Err(message) => {
-                        //println!("{}","unable to write to .pnavrc");
-                        println!("{}",message);
-                        None
+                        panic!("{}",message);
                     }
                 },
         };
@@ -254,17 +263,17 @@ impl<'a> Input {
     fn write_config(&self) -> Result<String, Box<dyn Error>>{
         // get home directory
         let home_dir = match dirs::home_dir() {
-            Some(path_buf) => match path_buf.as_path().to_str(){
-                Some(path) => String::from(path),
-                None => String::new()
-            },
+            Some(path_buf) => String::from(path_buf
+                .as_path()
+                .to_str()
+                .expect("home directory not found")),
             None => panic!("Home directory not found")
         };
 
         // get project root directory as text from struct if it exists.
         // if it doesn't; define one to write to the .pnavrc file
         let project_root: String = match &self.config_project_root {
-            Some(text) => String::from(text),
+            Some(text) => format!("projects_root_dir = {}", text),
             None => format!("projects_root_dir = {}/pnav_project_root_for_testing", home_dir)
         };
 
