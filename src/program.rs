@@ -3,6 +3,8 @@ use std::error::Error;
 use std::fs;
 use std::env;
 use std::process;
+use run_script;
+
 
 pub struct Program {
     input: input::Input,
@@ -69,13 +71,14 @@ impl Program {
         println!("{:?}",client_root.path());
         env::set_current_dir(&client_root.path()).expect("unable to change into directory");
 
-        let output = process::Command::new("sh")
-            .arg("-c")
-            .arg("echo hello")
-            .output()
-            .expect("failed to execute process");
 
-        output.stdout;
+        #[macro_use]
+        run_script!(
+            r#"
+            cd /root/rust_projects
+            "#
+            )?;
+
 
         Ok(())
 

@@ -1,6 +1,9 @@
 use std::fs;
 use std::error::Error;
 
+#[macro_use]
+extern crate run_script;
+
 mod input;
 mod program;
 
