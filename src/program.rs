@@ -33,8 +33,12 @@ impl Program {
             None => panic!("unable to find project root folder")
         };
 
+        let project_root = project_root.replace("  ", " ");
+        println!("{}", project_root);
+
         // get client folders from project root
         let client_folders: fs::ReadDir = fs::read_dir(project_root)?;
+        println!("\n\nhi\n\n");
 
         // loop through client folders
         let client_root: Vec<fs::DirEntry> = client_folders
@@ -68,17 +72,19 @@ impl Program {
             None => panic!("directory not found")
         };
 
+
         println!("{:?}",client_root.path());
         env::set_current_dir(&client_root.path()).expect("unable to change into directory");
+
 
 
         #[macro_use]
         run_script!(
             r#"
             cd /root/rust_projects
+            open .
             "#
             )?;
-
 
         Ok(())
 

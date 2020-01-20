@@ -30,10 +30,12 @@ impl<'a> Input{
             config_company_name: None
         }; 
 
+
         input.parse_args();
         input.parse_flags();
         input.get_config();
         input.parse_config();
+        println!("\n\n{:?}\n\n",input.config_project_root);
         match input.write_config() {
             Ok(value)=> (),
             Err(message) => panic!("unable to write to .pnavrc")
@@ -225,16 +227,24 @@ impl<'a> Input {
 
             // when line is project_root_dir
             // extract the dir and send it to the corresponding struct field
-            match l.to_lowercase().replace(" ", "").contains("projects_root_dir"){
+            match l.contains("projects_root_dir"){
                 true => {
                     l
-                    .to_lowercase()
-                    .replace(" ", "")
-                    .split("=")
+                    .split(" = ")
                     .for_each(| x | {
                         if !x.contains("projects_root_dir") {
-                            let projects_root = Some(String::from(x));
-                            self.config_project_root = projects_root;
+                            let projects_root = String::from(x);
+                            let mut with_spaces: String = String::new();
+                            let mut iter_count = 0;
+                            projects_root.split("\\").for_each(| x | {
+                                if iter_count == 0 {
+                                    with_spaces = format!("{}", x);
+                                } else {
+                                    with_spaces = format!("{} {}", with_spaces, x);
+                                }
+                                iter_count += 1;
+                            });
+                            self.config_project_root = Some(with_spaces);
                         }
                     });
                 },
