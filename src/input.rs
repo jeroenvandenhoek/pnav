@@ -35,7 +35,6 @@ impl<'a> Input{
         input.parse_flags();
         input.get_config();
         input.parse_config();
-        println!("\n\n{:?}\n\n",input.config_project_root);
         match input.write_config() {
             Ok(value)=> (),
             Err(message) => panic!("unable to write to .pnavrc")

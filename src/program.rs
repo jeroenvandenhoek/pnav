@@ -39,8 +39,23 @@ impl Program {
         // get client folders from project root
         let client_folders: fs::ReadDir = fs::read_dir(project_root)?;
 
-        // loop through client folders
-        let client_root: Vec<fs::DirEntry> = client_folders
+        let client_root: fs::DirEntry = self.find_dir_in_dir_matching_from_start_of_name(client_folders, &project_code[0..3]);
+        let project_root: fs::DirEntry = self.find_dir_in_dir_matching_from_start_of_name(fs::read_dir(client_root.path()).expect("unable to read client root directory"), &project_code[0..6]);
+
+        match self.open_path_in_window(&project_root){
+            Ok(_) => (),
+            Err(error) => panic!("\nunable to open directory\nfound following error:\n{}", error)
+        };
+
+        Ok(())
+
+    }
+}
+
+// utilities
+impl Program {
+    fn find_dir_in_dir_matching_from_start_of_name(&self, read_dir: fs::ReadDir, query: &str) -> fs::DirEntry{
+        let mut matching_dirs: Vec<fs::DirEntry> = read_dir
             .filter(| c | {
                 let c = match c {
                     Ok(value) => value,
@@ -50,7 +65,7 @@ impl Program {
                     Ok(value) => value,
                     Err(message) => panic!(message)
                 };
-                if &c[0..3] == &project_code[0..3] {
+                if &c[0..query.len()] == query {
                     true
                 } else {
                     false
@@ -65,23 +80,15 @@ impl Program {
             })
             .collect();
 
+        let dir: fs::DirEntry = matching_dirs.remove(0);
+        dir
 
-        let client_root: &fs::DirEntry = match client_root.first(){
-            Some(dir) => dir,
-            None => panic!("directory not found")
-        };
+    }
+    fn open_path_in_window(&self, dir_entry: &fs::DirEntry) -> Result<(),Box<dyn Error>>{
+        // change to directory in process environment
+        env::set_current_dir(dir_entry.path()).expect("unable to change into directory");
 
-        // find project folder
-        //
-
-
-
-        env::set_current_dir(&client_root.path()).expect("unable to change into directory");
-
-
-
-
-        #[macro_use]
+        // open through script
         run_script!(
             r#"
             open .
@@ -89,6 +96,6 @@ impl Program {
             )?;
 
         Ok(())
-
     }
+
 }
