@@ -43,6 +43,8 @@ impl<'a> Input{
         input
     }
 }
+
+// top level methods for Input
 impl<'a> Input {
     fn parse_args(&mut self) {
         // collect arguments and filter out all the flags
@@ -202,61 +204,12 @@ impl<'a> Input {
     fn parse_config(&mut self) {
         let config: String = self.get_config().expect("pnavrc not found");
 
+        self.process_config_production_roots(&config).unwrap();
+
         config.lines().for_each(| l | {
             self.process_config_active_project(l).unwrap();
             self.process_config_projects_root_dir(l).unwrap();
         });
-    }
-    fn process_config_active_project(&mut self, line: &str)->Result<(), Box<dyn Error>>{
-        // when line is active project and the code is of valid patern
-        // extract the project code and send it to corresponding struct field
-        match line.to_lowercase().replace(" ", "").contains("active_project=") {
-            true => {
-                let mut project: Option<String> = None;
-                line
-                .to_lowercase()
-                .replace(" ", "")
-                .split("=")
-                .for_each(| x | {
-                    if !x.contains("active_project") && x.len() == 6 {
-                        project = Some(String::from(x));
-                    }
-                });
-                if !self.arguments_contained_project_code {
-                    self.config_active_project = project;
-                }
-            },
-            false => (),
-        };
-        Ok(())
-    }
-    fn process_config_projects_root_dir(&mut self, line: &str) -> Result<(), Box<dyn Error>>{
-        // when line is project_root_dir
-        // extract the dir and send it to the corresponding struct field
-        match line.contains("projects_root_dir"){
-            true => {
-                line
-                .split(" = ")
-                .for_each(| x | {
-                    if !x.contains("projects_root_dir") {
-                        let projects_root = String::from(x);
-                        let mut with_spaces: String = String::new();
-                        let mut iter_count = 0;
-                        projects_root.split("\\").for_each(| x | {
-                            if iter_count == 0 {
-                                with_spaces = format!("{}", x);
-                            } else {
-                                with_spaces = format!("{} {}", with_spaces, x);
-                            }
-                            iter_count += 1;
-                        });
-                        self.config_project_root = Some(with_spaces);
-                    }
-                });
-            },
-            false => ()
-        };
-        Ok(())
     }
     fn get_config(&mut self) -> Option<String>{
         let home_dir: String = String::from(dirs::home_dir()
@@ -342,6 +295,72 @@ impl<'a> Input {
 
         fs::write(format!("{}/.pnavrc",home_dir), content_clean)?;
         Ok(String::from("hi"))
+    }
+}
+
+// process config lines from .pnavrc
+impl<'a> Input {
+    fn process_config_active_project(&mut self, line: &str)->Result<(), Box<dyn Error>>{
+        // when line is active project and the code is of valid patern
+        // extract the project code and send it to corresponding struct field
+        match line.to_lowercase().replace(" ", "").contains("active_project=") {
+            true => {
+                let mut project: Option<String> = None;
+                line
+                .to_lowercase()
+                .replace(" ", "")
+                .split("=")
+                .for_each(| x | {
+                    if !x.contains("active_project") && x.len() == 6 {
+                        project = Some(String::from(x));
+                    }
+                });
+                if !self.arguments_contained_project_code {
+                    self.config_active_project = project;
+                }
+            },
+            false => (),
+        };
+        Ok(())
+    }
+    fn process_config_projects_root_dir(&mut self, line: &str) -> Result<(), Box<dyn Error>>{
+        // when line is project_root_dir
+        // extract the dir and send it to the corresponding struct field
+        match line.contains("projects_root_dir"){
+            true => {
+                line
+                .split(" = ")
+                .for_each(| x | {
+                    if !x.contains("projects_root_dir") {
+                        let projects_root = String::from(x);
+                        let mut with_spaces: String = String::new();
+                        let mut iter_count = 0;
+                        projects_root.split("\\").for_each(| x | {
+                            if iter_count == 0 {
+                                with_spaces = format!("{}", x);
+                            } else {
+                                with_spaces = format!("{} {}", with_spaces, x);
+                            }
+                            iter_count += 1;
+                        });
+                        self.config_project_root = Some(with_spaces);
+                    }
+                });
+            },
+            false => ()
+        };
+        Ok(())
+    }
+    fn process_config_production_roots(&mut self, config: &str)->Result<(), Box<dyn Error>>{
+        let mut config: Vec<&str> = config.split("[production-roots]").collect();
+        if config.len() == 2 {
+            let config: &str = config.remove(1);
+            println!("{}",&config);
+        } else {
+            self.config_production_roots = None;
+
+        }
+        Ok(())
     }
 }
 
