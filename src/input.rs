@@ -40,6 +40,7 @@ impl<'a> Input{
             Err(_) => panic!("unable to write to .pnavrc")
         };
 
+
         input
     }
 }
@@ -246,11 +247,25 @@ impl<'a> Input {
             None => format!("projects_root_dir = {}/pnav_project_root_for_testing", home_dir)
         };
 
+        // get active project code as &str from struct if it exists.
+        // if it doesn't: set an empty &str
+        let active_project: String = match self.config_active_project.as_ref() {
+            Some(project) => format!("active_project = {}",project),
+            None => String::from(""),
+        };
+
+        // get name of user's company if it exist.
+        // if it doesn't; set it to a default value.
+        let company_name: &str = match &self.config_company_name {
+            Some(name) => name,
+            None => "company_name = my_company"
+        };
+
         // get the production root directories as a vector of text from struct if it exists.
         // if it doesn't; set empty string
-        let production_roots: String = match &self.config_production_roots {
+        let production_roots: String = match self.config_production_roots.as_ref() {
             Some(roots) => {
-                let mut roots_as_str: String = String::from("[production_roots]");
+                let mut roots_as_str: String = String::from("[production-roots]");
                 let _roots: Vec<_> = roots
                     .iter()
                     .map(
@@ -263,26 +278,12 @@ impl<'a> Input {
             None => String::from("")
         };
 
-        // get active project code as &str from struct if it exists.
-        // if it doesn't: set an empty &str
-        let active_project: String = match &self.config_active_project {
-            Some(project) => format!("active_project = {}",project),
-            None => String::from(""),
-        };
-
-        // get name of user's company if it exist.
-        // if it doesn't; set it to a default value.
-        let company_name: &str = match &self.config_company_name {
-            Some(name) => name,
-            None => "company_name = my_company"
-        };
-
         // combine content to write to .pnavrc
         let content: String = format!("{}\n\n{}\n\n{}\n\n{}",
             project_root,
-            production_roots,
             active_project,
-            company_name
+            company_name,
+            production_roots
             );
 
         // clean up content formatting
@@ -292,6 +293,7 @@ impl<'a> Input {
                 content_clean = format!("{}\n{}", content_clean, l);
             };
         });
+
 
         fs::write(format!("{}/.pnavrc",home_dir), content_clean)?;
         Ok(String::from("hi"))
@@ -357,7 +359,7 @@ impl<'a> Input {
             let config: Vec<&str> = config.remove(1).split("\n").collect();
             let mut config: std::slice::Iter<&str> = config.iter();
             let mut production_roots: Vec<String> = vec![];
-            for _ in 0..config.len()-1{
+            for _ in 0..config.len(){
                 let line: &str = config.next().unwrap(); // option should return Some, otherwise the loop wouldn't have gotten here 
                 if line != "" {
                     production_roots.push(String::from(line));
@@ -366,7 +368,6 @@ impl<'a> Input {
             if production_roots.len() != 0{
                 self.config_production_roots = Some(production_roots);
             };
-            println!("{:?}",self.config_production_roots);
         } else {
             self.config_production_roots = None;
 

@@ -23,15 +23,16 @@ impl Program {
         // when user wants to open the project folder
         {
             let project_root: fs::DirEntry = self.get_project_dir()?; 
-
-            match Program::open_path_in_window(&project_root){
-                Ok(_) => (),
-                Err(error) => panic!("\nunable to open directory\nfound following error:\n{}", error)
-            };
+            Program::open_path_in_window(&project_root)?;
         }
 
         // when user wants to open the production folder
         {
+            let production_dir: fs::DirEntry = match self.get_production_dir(){
+                Some(dir) => dir,
+                None => panic!("production directory not found")
+            };
+            Program::open_path_in_window(&production_dir)?;
         }
 
         Ok(())
@@ -60,7 +61,7 @@ impl Program {
 
         Ok(project_root)
     }
-    fn get_production_dir(&self)->Result<fs::DirEntry, Box<dyn Error>>{
+    fn get_production_dir(&self)->Option<fs::DirEntry>{
         let production_paths: &Vec<String> = self.input.config_production_roots.as_ref().expect("no roots available");
         let production_paths: std::slice::Iter<String> = production_paths.iter();
 
@@ -83,7 +84,7 @@ impl Program {
                 
                 let mut first_six_chars: &str = "";
                 if name_of_dir.len() > 5 {
-                    first_six_chars = &name_of_dir[0..7];
+                    first_six_chars = &name_of_dir[0..6];
                 };
 
                 if first_six_chars == self.input.config_active_project.as_ref().expect("no active project present"){
@@ -102,10 +103,7 @@ impl Program {
             }
         });
 
-        match prod_dir {
-            Some(dir) => Ok(dir),
-            None => panic!("no production directory found")
-        }
+        prod_dir
     }
 }
 
