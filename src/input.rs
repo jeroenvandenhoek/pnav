@@ -36,8 +36,8 @@ impl<'a> Input{
         input.get_config();
         input.parse_config();
         match input.write_config() {
-            Ok(value)=> (),
-            Err(message) => panic!("unable to write to .pnavrc")
+            Ok(_)=> (),
+            Err(_) => panic!("unable to write to .pnavrc")
         };
 
         input
@@ -354,14 +354,26 @@ impl<'a> Input {
     fn process_config_production_roots(&mut self, config: &str)->Result<(), Box<dyn Error>>{
         let mut config: Vec<&str> = config.split("[production-roots]").collect();
         if config.len() == 2 {
-            let config: &str = config.remove(1);
-            println!("{}",&config);
+            let config: Vec<&str> = config.remove(1).split("\n").collect();
+            let mut config: std::slice::Iter<&str> = config.iter();
+            let mut production_roots: Vec<String> = vec![];
+            for _ in 0..config.len()-1{
+                let line: &str = config.next().unwrap(); // option should return Some, otherwise the loop wouldn't have gotten here 
+                if line != "" {
+                    production_roots.push(String::from(line));
+                }
+            };
+            if production_roots.len() != 0{
+                self.config_production_roots = Some(production_roots);
+            };
+            println!("{:?}",self.config_production_roots);
         } else {
             self.config_production_roots = None;
 
         }
         Ok(())
     }
+
 }
 
 
