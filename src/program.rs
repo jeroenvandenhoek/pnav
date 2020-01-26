@@ -4,7 +4,6 @@ use std::fs;
 use std::env;
 use run_script;
 
-
 pub struct Program {
     input: input::Input,
 }
@@ -19,20 +18,78 @@ impl Program {
         Ok(())
     }
     fn interpret_input(&self)->Result<(), Box<dyn Error>>{
+        // get project and production dirs
+        let project_dir: fs::DirEntry = self.get_project_dir()?; 
+        let production_dir: fs::DirEntry = match self.get_production_dir(){
+            Some(dir) => dir,
+            None => panic!("production directory not found")
+        };
 
-        // when user wants to open the project folder
-        {
-            let project_root: fs::DirEntry = self.get_project_dir()?; 
-            Program::open_path_in_window(&project_root)?;
-        }
+        // shorthands
+        let flags_gen: Option<&Vec<char>> = self.input.flags_general.as_ref();
+        let flags_proj: Option<&Vec<char>> = self.input.flags_targeting_project.as_ref();
+        let flags_prod: Option<&Vec<char>> = self.input.flags_targeting_production.as_ref();
+        println!("\nflags gen = {:?}",flags_gen);
+        println!("\nflags proj = {:?}",flags_proj);
+        println!("\nflags prod = {:?}",flags_prod);
+        match (flags_gen, flags_proj, flags_prod){
+            (Some(_gen), _, _) => (), // handle this later
+            (None, None, None) => {
+                // open both the main project and main production folders
+                Program::open_path_in_window(&project_dir)?;
+                Program::open_path_in_window(&production_dir)?;
+            },
+            _ => {
+                // get paths as string
+                let proj_path: std::path::PathBuf = project_dir.path();
+                let proj_path: &str = proj_path.to_str().unwrap();
+                let prod_path: std::path::PathBuf = project_dir.path();
+                let prod_path: &str = prod_path.to_str().unwrap();
 
-        // when user wants to open the production folder
-        {
-            let production_dir: fs::DirEntry = match self.get_production_dir(){
-                Some(dir) => dir,
-                None => panic!("production directory not found")
-            };
-            Program::open_path_in_window(&production_dir)?;
+                // get and open folders that correspond to flags
+                if flags_proj.is_some(){
+                    flags_proj.unwrap().iter().for_each(| f |{
+                        let proj_content: fs::ReadDir = fs::read_dir(&proj_path).unwrap();
+                        match f {
+                            'c' => {
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Client");
+                                Program::open_path_in_window(&dir).unwrap();
+                            },
+                            's' => {
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Supplier");
+                                Program::open_path_in_window(&dir).unwrap();
+                            },
+                            'm' => {
+                                let company_name = "Maerschalk";
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, company_name);
+                                Program::open_path_in_window(&dir).unwrap();
+                            },
+                            _ => ()
+                        }
+                    })
+                }
+
+                if flags_prod.is_some(){
+                    flags_prod.unwrap().iter().for_each(| f |{
+                        let prod_content: fs::ReadDir = fs::read_dir(&prod_path).unwrap();
+                        match f {
+                            'a' => {
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Asset");
+                                Program::open_path_in_window(&dir).unwrap();
+                            },
+                            'p' => {
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Project");
+                                Program::open_path_in_window(&dir).unwrap();
+                            },
+                            'd' => {
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Deliver");
+                                Program::open_path_in_window(&dir).unwrap();
+                            },
+                            _ => ()
+                        }
+                    })
+                }
+            }
         }
 
         Ok(())
@@ -121,6 +178,35 @@ impl Program {
                     Err(message) => panic!(message)
                 };
                 if &c[0..query.len()] == query {
+                    true
+                } else {
+                    false
+                }
+            })
+            .map(| d | {
+                let d = match d {
+                    Ok(dir) => dir,
+                    Err(message) => panic!(message)
+                };
+                d
+            })
+            .collect();
+
+        let dir: fs::DirEntry = matching_dirs.remove(0);
+        dir
+    }
+    fn find_dir_in_dir_matching_anywhere_in_name(read_dir: fs::ReadDir, query: &str) -> fs::DirEntry{
+        let mut matching_dirs: Vec<fs::DirEntry> = read_dir
+            .filter(| c | {
+                let c = match c {
+                    Ok(value) => value,
+                    Err(_) => panic!("can not extract dir entry from result")
+                };
+                let c = match c.file_name().into_string(){
+                    Ok(value) => value,
+                    Err(message) => panic!(message)
+                };
+                if c.contains(query) {
                     true
                 } else {
                     false
