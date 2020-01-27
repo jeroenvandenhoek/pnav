@@ -151,22 +151,24 @@ impl<'a> Input {
         // if there are long flags present;
         // convert long flags to short flags
         // and add them to list of short flags
-        if long_flags.len() == 0 {return None};
-        long_flags
-            .iter()
-            .for_each(| x |{
-                short_flags.push(match &x.to_lowercase()[..] {
-                    "--list" => 'l',
-                    "--help" => 'h',
-                    "--client" => 'c',
-                    "--supplier" => 's',
-                    "--internal" => 'i',
-                    "--assets" => 'a',
-                    "--projects" => 'p',
-                    "--delivery" => 'd',
-                    _ => 'X',  
-                })
-            });
+        if long_flags.len() != 0 {
+            long_flags
+                .iter()
+                .for_each(| x |{
+                    short_flags.push(match &x.to_lowercase()[..] {
+                        "--list" => 'l',
+                        "--help" => 'h',
+                        "--client" => 'c',
+                        "--supplier" => 's',
+                        "--me" => 'm',
+                        "--my-company" => 'm',
+                        "--assets" => 'a',
+                        "--projects" => 'p',
+                        "--delivery" => 'd',
+                        _ => 'X',  
+                    })
+                });
+        };
 
         // add short flags to corresponding categories
         let mut general: Vec<char> = Vec::new();
@@ -178,13 +180,12 @@ impl<'a> Input {
                 'h' => general.push('h'),
                 'c' => project.push('c'),
                 's' => project.push('s'),
-                'i' => project.push('i'),
+                'm' => project.push('m'),
                 'a' => production.push('a'),
                 'p' => production.push('p'),
                 'd' => production.push('d'),
                 _ => ()
             }
-
         });
 
         // write three flag categories to corresponding Struct fields as options

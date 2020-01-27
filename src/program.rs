@@ -29,9 +29,6 @@ impl Program {
         let flags_gen: Option<&Vec<char>> = self.input.flags_general.as_ref();
         let flags_proj: Option<&Vec<char>> = self.input.flags_targeting_project.as_ref();
         let flags_prod: Option<&Vec<char>> = self.input.flags_targeting_production.as_ref();
-        println!("\nflags gen = {:?}",flags_gen);
-        println!("\nflags proj = {:?}",flags_proj);
-        println!("\nflags prod = {:?}",flags_prod);
         match (flags_gen, flags_proj, flags_prod){
             (Some(_gen), _, _) => (), // handle this later
             (None, None, None) => {
@@ -43,7 +40,7 @@ impl Program {
                 // get paths as string
                 let proj_path: std::path::PathBuf = project_dir.path();
                 let proj_path: &str = proj_path.to_str().unwrap();
-                let prod_path: std::path::PathBuf = project_dir.path();
+                let prod_path: std::path::PathBuf = production_dir.path();
                 let prod_path: &str = prod_path.to_str().unwrap();
 
                 // get and open folders that correspond to flags
@@ -52,16 +49,42 @@ impl Program {
                         let proj_content: fs::ReadDir = fs::read_dir(&proj_path).unwrap();
                         match f {
                             'c' => {
-                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Client");
-                                Program::open_path_in_window(&dir).unwrap();
+                                let mut dir: Result<fs::DirEntry, String> = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Client");
+                                match dir {
+                                    Ok(dir) => Program::open_path_in_window(&dir).unwrap(),
+                                    Err(_) => {
+                                        // this solution is necessary to make pnav compatible with
+                                        // current project management at maerschalk
+                                        let proj_content: fs::ReadDir = fs::read_dir(&proj_path).unwrap();  
+                                        dir = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Klant");
+                                        match dir {
+                                            Ok(dir) => Program::open_path_in_window(&dir).unwrap(),
+                                            Err(message) => panic!("{}", message)
+                                        }
+
+                                    }
+                                }
                             },
                             's' => {
-                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Supplier");
-                                Program::open_path_in_window(&dir).unwrap();
+                                let mut dir: Result<fs::DirEntry, String> = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Supplier");
+                                match dir {
+                                    Ok(dir) => Program::open_path_in_window(&dir).unwrap(),
+                                    Err(_) => {
+                                        // this solution is necessary to make pnav compatible with
+                                        // current project management at maerschalk
+                                        let proj_content: fs::ReadDir = fs::read_dir(&proj_path).unwrap();  
+                                        dir = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, "Leverancier");
+                                        match dir {
+                                            Ok(dir) => Program::open_path_in_window(&dir).unwrap(),
+                                            Err(message) => panic!("{}", message)
+                                        }
+
+                                    }
+                                }
                             },
                             'm' => {
                                 let company_name = "Maerschalk";
-                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, company_name);
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(proj_content, company_name).unwrap();
                                 Program::open_path_in_window(&dir).unwrap();
                             },
                             _ => ()
@@ -74,15 +97,15 @@ impl Program {
                         let prod_content: fs::ReadDir = fs::read_dir(&prod_path).unwrap();
                         match f {
                             'a' => {
-                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Asset");
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Asset").unwrap();
                                 Program::open_path_in_window(&dir).unwrap();
                             },
                             'p' => {
-                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Project");
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Project").unwrap();
                                 Program::open_path_in_window(&dir).unwrap();
                             },
                             'd' => {
-                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Deliver");
+                                let dir: fs::DirEntry = Program::find_dir_in_dir_matching_anywhere_in_name(prod_content, "Deliver").unwrap();
                                 Program::open_path_in_window(&dir).unwrap();
                             },
                             _ => ()
@@ -195,7 +218,7 @@ impl Program {
         let dir: fs::DirEntry = matching_dirs.remove(0);
         dir
     }
-    fn find_dir_in_dir_matching_anywhere_in_name(read_dir: fs::ReadDir, query: &str) -> fs::DirEntry{
+    fn find_dir_in_dir_matching_anywhere_in_name(read_dir: fs::ReadDir, query: &str) -> Result<fs::DirEntry, String>{
         let mut matching_dirs: Vec<fs::DirEntry> = read_dir
             .filter(| c | {
                 let c = match c {
@@ -221,8 +244,10 @@ impl Program {
             })
             .collect();
 
-        let dir: fs::DirEntry = matching_dirs.remove(0);
-        dir
+        match matching_dirs.len(){
+            0 => Err(String::from("no directory found")),
+            _ => Ok(matching_dirs.remove(0))
+        }
     }
     fn open_path_in_window(dir_entry: &fs::DirEntry) -> Result<(),Box<dyn Error>>{
         // change to directory in process environment
