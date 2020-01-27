@@ -22,7 +22,10 @@ impl Program {
         let project_dir: fs::DirEntry = self.get_project_dir()?; 
         let production_dir: fs::DirEntry = match self.get_production_dir(){
             Some(dir) => dir,
-            None => panic!("production directory not found")
+            None => {
+                println!("info: this project does not yet have a production directory");
+                self.get_project_dir()? // return project directory (find better solution when time is available)
+            }
         };
 
         // shorthands
