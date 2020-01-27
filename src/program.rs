@@ -1,4 +1,5 @@
 use super::input;
+use super::info;
 use std::error::Error;
 use std::fs;
 use std::env;
@@ -32,8 +33,27 @@ impl Program {
         let flags_gen: Option<&Vec<char>> = self.input.flags_general.as_ref();
         let flags_proj: Option<&Vec<char>> = self.input.flags_targeting_project.as_ref();
         let flags_prod: Option<&Vec<char>> = self.input.flags_targeting_production.as_ref();
+
+        // interpret flags
         match (flags_gen, flags_proj, flags_prod){
-            (Some(_gen), _, _) => (), // handle this later
+            (Some(gen), _, _) => {
+                if gen.contains(&'i'){
+                    match &self.input.arguments{
+                        Some(args) => {
+                        },
+                        None => {
+                            let project_root_path: &str = self.input.config_project_root.as_ref().unwrap();
+                            let project_root_path = &project_root_path.replace("  ", " ");
+                            let project_root: Result<fs::ReadDir, _> = fs::read_dir(project_root_path);
+                            match project_root{
+                                Ok(root) => info::Info::list_clients(root),
+                                Err(message) => panic!("{}",message)
+                            }
+                            
+                        }
+                    }
+                }
+            }, // handle this later
             (None, None, None) => {
                 // open both the main project and main production folders
                 Program::open_path_in_window(&project_dir)?;

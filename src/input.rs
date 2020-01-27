@@ -156,8 +156,9 @@ impl<'a> Input {
                 .iter()
                 .for_each(| x |{
                     short_flags.push(match &x.to_lowercase()[..] {
-                        "--list" => 'l',
+                        "--log" => 'l',
                         "--help" => 'h',
+                        "--info" => 'i',
                         "--client" => 'c',
                         "--supplier" => 's',
                         "--me" => 'm',
@@ -178,6 +179,7 @@ impl<'a> Input {
             match *x {
                 'l' => general.push('l'),
                 'h' => general.push('h'),
+                'i' => general.push('i'),
                 'c' => project.push('c'),
                 's' => project.push('s'),
                 'm' => project.push('m'),
@@ -189,6 +191,7 @@ impl<'a> Input {
         });
 
         // write three flag categories to corresponding Struct fields as options
+        println!("\n{:?}\n",general);
         match general.len() {
             0 => self.flags_general = None,
             _ => self.flags_general = Some(general)
