@@ -5,6 +5,14 @@ use std::fs;
 use std::env;
 use run_script;
 
+enum ArgumentType {
+    ProjectCode(String),
+    ClientCode(String),
+    ClientName(String),
+    New,
+    Add,
+}
+
 pub struct Program {
     input: input::Input,
 }
@@ -40,6 +48,27 @@ impl Program {
                 if gen.contains(&'i'){
                     match &self.input.arguments{
                         Some(args) => {
+                            match args.get(0) {
+                                Some(arg) => {
+                                    match Program::argument_type(arg){
+                                        ArgumentType::ProjectCode(project_code) => {
+                                            println!("\nhere you'll see info about project: {}\n",project_code);
+                                        },
+                                        ArgumentType::ClientCode(client_code) =>{
+                                            println!("\nhere you'll see info about client: {}\n",client_code);
+                                        },
+                                        ArgumentType::ClientName(client_name) => {
+                                            ()
+                                        },
+                                        ArgumentType::New => (),
+                                        ArgumentType::Add => (),
+                                        _ => ()
+                                    };
+                                    ()
+                                },
+                                None => ()
+
+                            };
                         },
                         None => {
                             let project_root_path: &str = self.input.config_project_root.as_ref().unwrap();
@@ -284,6 +313,17 @@ impl Program {
             )?;
 
         Ok(())
+    }
+    fn argument_type(arg: &str)->ArgumentType{
+        if arg.len() == 6 && arg.chars().filter(| a | a.is_numeric()).count() == 6{
+            ArgumentType::ProjectCode(String::from(arg))
+        } else if arg.len() == 3 && arg.chars().filter(| a | a.is_numeric()).count() == 3 {
+            ArgumentType::ClientCode(String::from(arg))
+        } else if arg.to_lowercase().contains("add") {
+            ArgumentType::Add
+        }  else {
+            ArgumentType::New
+        }
     }
 
 }

@@ -65,7 +65,7 @@ impl<'a> Input {
         // create a group with the argument that follows (if that)
         let grouped_add_or_new: Option<String> = match &index_of_add_or_new {
             Some(index) => {
-                if index+1 <= args.len(){
+                if index+1 <= args.len() && args.len()>1{
                     Some(format!("{} {}", args[*index], args[*index+1]))
                 }else{
                     None
