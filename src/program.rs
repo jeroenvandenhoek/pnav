@@ -9,6 +9,7 @@ enum ArgumentType {
     ProjectCode(String),
     ClientCode(String),
     ClientName(String),
+    Current,
     New,
     Add,
 }
@@ -60,6 +61,9 @@ impl Program {
                                         ArgumentType::ClientName(client_name) => {
                                             ()
                                         },
+                                        ArgumentType::Current => {
+                                            Program::print_current(self.input.config_active_project.as_ref().expect("no project code present"))?;
+                                        },
                                         ArgumentType::New => (),
                                         ArgumentType::Add => (),
                                         _ => ()
@@ -78,15 +82,22 @@ impl Program {
                                 Ok(root) => info::Info::list_clients(root),
                                 Err(message) => panic!("{}",message)
                             }
-                            
                         }
                     }
                 }
             }, // handle this later
             (None, None, None) => {
-                // open both the main project and main production folders
-                Program::open_path_in_window(&project_dir)?;
-                Program::open_path_in_window(&production_dir)?;
+                match &self.input.arguments {
+                    Some(arg) => {
+                        println!("programming for different arguments needed")
+                    }
+                    None => {
+                        // open both the main project and main production folders
+                        Program::open_path_in_window(&project_dir)?;
+                        Program::open_path_in_window(&production_dir)?;
+                    }
+
+                }
             },
             _ => {
                 // get paths as string
@@ -314,15 +325,23 @@ impl Program {
 
         Ok(())
     }
+    fn print_current(project_code: &str) -> Result<(), String>{
+        println!("This is the current project:\ncode:\t\t{}\nclient:\t\t{},\nproject name:\t{}","123456","troelala", "oelala");
+        Ok(())
+    }
     fn argument_type(arg: &str)->ArgumentType{
         if arg.len() == 6 && arg.chars().filter(| a | a.is_numeric()).count() == 6{
             ArgumentType::ProjectCode(String::from(arg))
         } else if arg.len() == 3 && arg.chars().filter(| a | a.is_numeric()).count() == 3 {
             ArgumentType::ClientCode(String::from(arg))
+        } else if arg.to_lowercase().contains("current") {
+            ArgumentType::Current
         } else if arg.to_lowercase().contains("add") {
             ArgumentType::Add
-        }  else {
+        } else if arg.to_lowercase().contains("new") {
             ArgumentType::New
+        } else {
+            ArgumentType::ClientName(String::from(arg))
         }
     }
 
