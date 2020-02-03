@@ -45,50 +45,43 @@ impl Program {
 
         // interpret flags
         match (flags_gen, flags_proj, flags_prod){
-            (Some(gen), _, _) => {
-                if gen.contains(&'i'){
-                    match &self.input.arguments{
-                        Some(args) => {
-                            match args.get(0) {
-                                Some(arg) => {
-                                    match Program::argument_type(arg){
-                                        ArgumentType::ProjectCode(project_code) => {
-                                            println!("\nhere you'll see info about project: {}\n",project_code);
-                                        },
-                                        ArgumentType::ClientCode(client_code) =>{
-                                            println!("\nhere you'll see info about client: {}\n",client_code);
-                                        },
-                                        ArgumentType::ClientName(client_name) => {
-                                            ()
-                                        },
-                                        ArgumentType::Current => {
-                                            Program::print_current(self.input.config_active_project.as_ref().expect("no project code present"))?;
-                                        },
-                                        ArgumentType::New => (),
-                                        ArgumentType::Add => (),
-                                        _ => ()
-                                    };
-                                    ()
-                                },
-                                None => ()
-
-                            };
-                        },
-                        None => {
-                            let project_root_path: &str = self.input.config_project_root.as_ref().unwrap();
-                            let project_root_path = &project_root_path.replace("  ", " ");
-                            let project_root: Result<fs::ReadDir, _> = fs::read_dir(project_root_path);
-                            match project_root{
-                                Ok(root) => info::Info::list_clients(root),
-                                Err(message) => panic!("{}",message)
-                            }
+            (Some(gen), _, _) if gen.contains(&'i') => {
+                match &self.input.arguments{
+                    Some(args) if (args.get(0) != None) => {
+                        let arg = args.get(0).unwrap();
+                        match Program::argument_type(arg){
+                            ArgumentType::ProjectCode(project_code) => println!("\nhere you'll see info about project: {}\n",project_code),
+                            ArgumentType::ClientCode(client_code) => println!("\nhere you'll see info about client: {}\n",client_code),
+                            ArgumentType::ClientName(client_name) => (),
+                            ArgumentType::Current => Program::print_current(self.input.config_active_project.as_ref().expect("no project code present"))?,
+                            ArgumentType::New => (),
+                            ArgumentType::Add => (),
+                        };
+                    },
+                    None => {
+                        let project_root_path: &str = self.input.config_project_root.as_ref().unwrap();
+                        let project_root_path = &project_root_path.replace("  ", " ");
+                        let project_root: Result<fs::ReadDir, _> = fs::read_dir(project_root_path);
+                        match project_root{
+                            Ok(root) => info::Info::list_clients(root),
+                            Err(message) => panic!("{}",message)
                         }
-                    }
+                    },
+                    _ => ()
                 }
             }, // handle this later
             (None, None, None) => {
                 match &self.input.arguments {
                     Some(arg) => {
+                        let arg_type: ArgumentType = Program::argument_type(&arg.get(0).unwrap());
+                        match arg_type {
+                            ArgumentType::ProjectCode(project_code) => (),
+                            ArgumentType::ClientCode(client_code) => (),
+                            ArgumentType::ClientName(client_name) => (),
+                            ArgumentType::Current => Program::print_current(self.input.config_active_project.as_ref().expect("no project code present"))?,
+                            ArgumentType::New => (),
+                            ArgumentType::Add => (),
+                        }
                         println!("programming for different arguments needed")
                     }
                     None => {
