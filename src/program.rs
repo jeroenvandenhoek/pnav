@@ -53,7 +53,7 @@ impl Program {
                             ArgumentType::ProjectCode(project_code) => println!("\nhere you'll see info about project: {}\n",project_code),
                             ArgumentType::ClientCode(client_code) => println!("\nhere you'll see info about client: {}\n",client_code),
                             ArgumentType::ClientName(client_name) => (),
-                            ArgumentType::Current => Program::print_current(self.input.config_active_project.as_ref().expect("no project code present"))?,
+                            ArgumentType::Current => self.print_current()?,
                             ArgumentType::New => (),
                             ArgumentType::Add => (),
                         };
@@ -78,7 +78,7 @@ impl Program {
                             ArgumentType::ProjectCode(project_code) => (),
                             ArgumentType::ClientCode(client_code) => (),
                             ArgumentType::ClientName(client_name) => (),
-                            ArgumentType::Current => Program::print_current(self.input.config_active_project.as_ref().expect("no project code present"))?,
+                            ArgumentType::Current => self.print_current()?,
                             ArgumentType::New => (),
                             ArgumentType::Add => (),
                         }
@@ -177,9 +177,7 @@ impl Program {
 }
 
 impl Program {
-    fn get_project_dir(&self) -> Result<fs::DirEntry, Box<dyn Error>>{
-        // get project code
-        let project_code = self.input.config_active_project.as_ref().expect("cannot find a project code");
+    fn get_projects_root_dir(&self) -> Result<fs::ReadDir, String>{
         // get project root as text
         let project_root: &str = match &self.input.config_project_root{
             Some(path) => path,
@@ -188,9 +186,17 @@ impl Program {
 
         // remove redundand spaces
         let project_root = project_root.replace("  ", " ");
+        match fs::read_dir(project_root){
+            Ok(dir) => Ok(dir),
+            Err(message) => Err(String::from("projects root directory not found"))
+        }
+    }
+    fn get_project_dir(&self) -> Result<fs::DirEntry, String>{
+        // get project code
+        let project_code = self.input.config_active_project.as_ref().expect("cannot find a project code");
 
         // get client folders from project root
-        let client_folders: fs::ReadDir = fs::read_dir(project_root)?;
+        let client_folders: fs::ReadDir = self.get_projects_root_dir()?;
 
         let client_root: fs::DirEntry = Program::find_dir_in_dir_matching_from_start_of_name(client_folders, &project_code[0..3]);
         let project_root: fs::DirEntry = Program::find_dir_in_dir_matching_from_start_of_name(fs::read_dir(client_root.path()).expect("unable to read client root directory"), &project_code[0..6]);
@@ -240,6 +246,21 @@ impl Program {
         });
 
         prod_dir
+    }
+    fn print_current(&self) -> Result<(), String>{
+        // get shorthands
+        let projects_root_dir: fs::ReadDir = self.get_projects_root_dir()?;
+        let project_code: &str = &self.input.config_active_project.as_ref().expect("no active project code found");
+
+        // get directory from current project code
+        let client_dir: fs::DirEntry = Program::find_dir_in_dir_matching_from_start_of_name(projects_root_dir, &project_code[0..3]);
+        let project_dir: fs::DirEntry = Program::find_dir_in_dir_matching_from_start_of_name(fs::read_dir(client_dir.path()).unwrap(), &project_code);
+        let project_dir_name: String = project_dir.file_name().into_string().unwrap();
+
+        // print
+        let client_name: &str = &project_dir_name.split(" - ").remove(2);
+        println!("{}", project_dir_name);
+        Ok(())
     }
 }
 
@@ -316,10 +337,6 @@ impl Program {
             "#
             )?;
 
-        Ok(())
-    }
-    fn print_current(project_code: &str) -> Result<(), String>{
-        println!("This is the current project:\ncode:\t\t{}\nclient:\t\t{},\nproject name:\t{}","123456","troelala", "oelala");
         Ok(())
     }
     fn argument_type(arg: &str)->ArgumentType{
