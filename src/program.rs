@@ -3,6 +3,10 @@ use super::info;
 use std::error::Error;
 use std::fs;
 use std::env;
+use ansi_term;
+use ansi_term::Colour::Red;
+use ansi_term::Colour::Yellow;
+use ansi_term::Colour::Green;
 use run_script;
 
 enum ArgumentType {
@@ -258,8 +262,15 @@ impl Program {
         let project_dir_name: String = project_dir.file_name().into_string().unwrap();
 
         // print
-        let client_name: &str = &project_dir_name.split(" - ").remove(2);
-        println!("{}", project_dir_name);
+        let mut client_name: Vec<&str> = project_dir_name.split(" - ").collect();
+        let client_name: &str = client_name.remove(2);
+        let mut project_name: Vec<&str> = project_dir_name.split(" - ").collect();
+        let project_name: &str = project_name.remove(3);
+        println!("\n{}\n--------------","info:");
+        println!("{}:\t\t{}",Green.normal().paint("project code"),Yellow.normal().paint(project_code));
+        println!("{}:\t\t\t{}",Green.normal().paint("client"),Yellow.normal().paint(client_name));
+        println!("{}:\t\t{}",Green.normal().paint("project name"),Yellow.normal().paint(project_name));
+        println!("{}\n","--------------");
         Ok(())
     }
 }
