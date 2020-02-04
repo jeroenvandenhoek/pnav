@@ -191,7 +191,6 @@ impl<'a> Input {
         });
 
         // write three flag categories to corresponding Struct fields as options
-        println!("\n{:?}\n",general);
         match general.len() {
             0 => self.flags_general = None,
             _ => self.flags_general = Some(general)
