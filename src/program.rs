@@ -3,6 +3,7 @@ use super::info;
 use std::error::Error;
 use std::fs;
 use std::env;
+use std::cmp::Ordering;
 use ansi_term;
 use ansi_term::Colour::Red;
 use ansi_term::Colour::Yellow;
@@ -13,6 +14,7 @@ enum ArgumentType {
     ProjectCode(String),
     ClientCode(String),
     ClientName(String),
+    Active, // User asks for a list of active projects
     Current,
     New,
     Add,
@@ -58,6 +60,7 @@ impl Program {
                             ArgumentType::ClientCode(client_code) => println!("\nhere you'll see info about client: {}\n",client_code),
                             ArgumentType::ClientName(client_name) => (),
                             ArgumentType::Current => self.print_current()?,
+                            ArgumentType::Active => self.print_active()?,
                             ArgumentType::New => (),
                             ArgumentType::Add => (),
                         };
@@ -83,6 +86,7 @@ impl Program {
                             ArgumentType::ClientCode(client_code) => (),
                             ArgumentType::ClientName(client_name) => (),
                             ArgumentType::Current => self.print_current()?,
+                            ArgumentType::Active => self.print_active()?,
                             ArgumentType::New => (),
                             ArgumentType::Add => (),
                         }
@@ -273,6 +277,66 @@ impl Program {
         println!("{}\n","--------------");
         Ok(())
     }
+    fn print_active(&self) -> Result<(), String> {
+        // define number of seconds in an active period
+        // every client and project that has been modified in this time, wil be printed
+        let active_time_span: std::time::Duration = std::time::Duration::from_secs(3888000); // approximately 3 months
+
+        // get projects
+        let projects_root: fs::ReadDir = self.get_projects_root_dir()?;
+
+        // get list of active client folders
+        let active_clients: Vec<fs::DirEntry> = projects_root
+            .map(| dir | {
+                let dir: fs::DirEntry = dir.unwrap();
+                dir
+            }).filter(| dir |{
+                let dir_elapsed_time: std::time::Duration = dir.metadata()
+                    .unwrap()
+                    .modified()
+                    .unwrap()
+                    .elapsed()
+                    .unwrap();
+
+                dir_elapsed_time < active_time_span
+            }).collect();
+
+        // get list of active project folders
+        let mut active_projects: Vec<fs::DirEntry> = vec![];
+        active_clients.iter().for_each(| c_dir |{
+            let p_dirs: Result<fs::ReadDir, _> = fs::read_dir(c_dir.path());
+            match p_dirs {
+                Ok(p_dirs) => {
+                    let mut p_dirs: Vec<fs::DirEntry> = p_dirs
+                        .map(|p_dir|{
+                            p_dir.unwrap()
+                        }).filter(|p_dir|{
+                            let dir_elapsed_time: std::time::Duration = p_dir.metadata()
+                                .unwrap()
+                                .modified()
+                                .unwrap()
+                                .elapsed()
+                                .unwrap();
+                            dir_elapsed_time < active_time_span && p_dir.metadata().unwrap().is_dir()
+                        }).collect();
+                    let mut p_dirs: Vec<fs::DirEntry> = Program::sort_dir_entries(p_dirs).expect("failed to sort entries");
+
+                    // store p_dirs in active_projects vector
+                    for _ in 0..p_dirs.len(){
+                       active_projects.push(p_dirs.remove(0)) 
+                    };
+                }
+                Err(_) => ()
+            }
+        });
+
+        // print data for user
+        active_projects.iter().for_each(|p_dir|{
+            println!("{}",p_dir.file_name().to_str().expect("should print folder name"));
+        });
+
+        Ok(())
+    }
 }
 
 // utilities
@@ -357,6 +421,8 @@ impl Program {
             ArgumentType::ClientCode(String::from(arg))
         } else if arg.to_lowercase().contains("current") {
             ArgumentType::Current
+        } else if arg.to_lowercase().contains("active") {
+            ArgumentType::Active
         } else if arg.to_lowercase().contains("add") {
             ArgumentType::Add
         } else if arg.to_lowercase().contains("new") {
@@ -365,5 +431,10 @@ impl Program {
             ArgumentType::ClientName(String::from(arg))
         }
     }
+    fn sort_dir_entries(dirs: Vec<fs::DirEntry>) -> Result<Vec<fs::DirEntry>, String>{
+        println!("\n{}\n","this is where you left things maestro!!!");
+        
+        Ok(dirs)
+    }  
 
 }
