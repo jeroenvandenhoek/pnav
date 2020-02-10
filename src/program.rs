@@ -5,7 +5,7 @@ use std::fs;
 use std::env;
 use std::cmp::Ordering;
 use ansi_term;
-use ansi_term::Colour::Red;
+use ansi_term::Colour::Purple;
 use ansi_term::Colour::Yellow;
 use ansi_term::Colour::Green;
 use run_script;
@@ -286,7 +286,7 @@ impl Program {
         let projects_root: fs::ReadDir = self.get_projects_root_dir()?;
 
         // get list of active client folders
-        let active_clients: Vec<fs::DirEntry> = projects_root
+        let mut active_clients: Vec<fs::DirEntry> = projects_root
             .map(| dir | {
                 let dir: fs::DirEntry = dir.unwrap();
                 dir
@@ -319,7 +319,6 @@ impl Program {
                                 .unwrap();
                             dir_elapsed_time < active_time_span && p_dir.metadata().unwrap().is_dir()
                         }).collect();
-                    let mut p_dirs: Vec<fs::DirEntry> = Program::sort_dir_entries(p_dirs).expect("failed to sort entries");
 
                     // store p_dirs in active_projects vector
                     for _ in 0..p_dirs.len(){
@@ -330,10 +329,51 @@ impl Program {
             }
         });
 
+        // sort directories
+        Program::sort_dir_entries(&mut active_projects);
+        Program::sort_dir_entries(&mut active_clients);
+
         // print data for user
-        active_projects.iter().for_each(|p_dir|{
-            println!("{}",p_dir.file_name().to_str().expect("should print folder name"));
+        println!("\n---------------------------------------------------------");
+        println!("{}",Yellow.paint("these projects have been active in the past three months:"));
+        println!("---------------------------------------------------------\n");
+        active_clients.iter().for_each(|c_dir|{
+            if c_dir.file_name().to_str().expect("should retreive str from file name").chars().next().expect("should return the first character of the string").is_numeric(){
+                // print client name
+                let c_name: String = c_dir.file_name().into_string().expect("should convert to string");
+                let c_name: &str = c_name.split(" - ").last().expect("should return client name");
+                println!("{}",Yellow.paint(c_name));
+
+                // get client code
+                let client_code: std::ffi::OsString = c_dir.file_name();
+                let client_code: &str = client_code
+                    .to_str().expect("should return filename as string")
+                    .split(" ")
+                    .next().expect("should return client code from folder name");
+
+                // loop through project dirs and check which project belongs to this client
+                active_projects.iter().for_each(|p_dir|{
+                    let p_folder_name: String = p_dir.file_name().into_string().expect("should return name of project folder as string");
+                    let mut p_folder_name_chars: std::str::Chars = p_folder_name.chars();
+
+                    // retreive first three chars from project folder name
+                    let mut first_three_chars: String = String::new(); 
+                    for _ in 0..3 {
+                        first_three_chars.push_str(&format!("{}",p_folder_name_chars.next().expect("this filename does not have enough chars for this method")));
+                    }
+
+                    if client_code == &first_three_chars {
+                        let mut name_parts: std::str::Split<&str> = p_folder_name.split(" - "); 
+                        let proj_code: &str = name_parts.next().unwrap();
+                        let proj_name: &str = name_parts.last().unwrap();
+                        println!("{} - {}", Green.paint(proj_code), Purple.paint(proj_name));
+                    }
+                });
+                println!("\n");
+            }
+
         });
+        println!("---------------------------------------------------------");
 
         Ok(())
     }
@@ -431,10 +471,14 @@ impl Program {
             ArgumentType::ClientName(String::from(arg))
         }
     }
-    fn sort_dir_entries(dirs: Vec<fs::DirEntry>) -> Result<Vec<fs::DirEntry>, String>{
-        println!("\n{}\n","this is where you left things maestro!!!");
-        
-        Ok(dirs)
+    fn sort_dir_entries(dirs: &mut Vec<fs::DirEntry>) {
+        dirs.sort_unstable_by(|a, b|{
+            let a_first_six: String = a.file_name().into_string().expect("file name should convert to string");
+            let a_first_six: &str = a_first_six.split(" ").next().expect("should return project code in dir name"); 
+            let b_first_six: String = b.file_name().into_string().expect("file name should convert to string");
+            let b_first_six: &str = b_first_six.split(" ").next().expect("should return project code in dir name"); 
+            a_first_six.partial_cmp(&b_first_six).expect("should have sorted entry")
+        });
     }  
 
 }
