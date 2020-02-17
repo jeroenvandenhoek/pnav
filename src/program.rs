@@ -3,21 +3,26 @@ use super::info;
 use std::error::Error;
 use std::fs;
 use std::env;
-use std::cmp::Ordering;
 use ansi_term;
 use ansi_term::Colour::Purple;
 use ansi_term::Colour::Yellow;
 use ansi_term::Colour::Green;
 use run_script;
 
+enum ArgumentNewType {
+    ClientName(String),
+    ProjectCode(String),
+    Nothing,
+}
+
 enum ArgumentType {
     ProjectCode(String),
     ClientCode(String),
     ClientName(String),
     Active, // User asks for a list of active projects
-    Current,
-    New,
-    Add,
+    Current, // User asks what the active project is
+    New(ArgumentNewType), // User wants to create someting. 
+    Add, // User wants to add a production directory to the .pnavrc file
 }
 
 pub struct Program {
@@ -58,10 +63,10 @@ impl Program {
                         match Program::argument_type(arg){
                             ArgumentType::ProjectCode(project_code) => println!("\nhere you'll see info about project: {}\n",project_code),
                             ArgumentType::ClientCode(client_code) => println!("\nhere you'll see info about client: {}\n",client_code),
-                            ArgumentType::ClientName(client_name) => (),
+                            ArgumentType::ClientName(_client_name) => (),
                             ArgumentType::Current => self.print_current()?,
                             ArgumentType::Active => self.print_active()?,
-                            ArgumentType::New => (),
+                            ArgumentType::New(_input_kind) => (),
                             ArgumentType::Add => (),
                         };
                     },
@@ -82,12 +87,12 @@ impl Program {
                     Some(arg) => {
                         let arg_type: ArgumentType = Program::argument_type(&arg.get(0).unwrap());
                         match arg_type {
-                            ArgumentType::ProjectCode(project_code) => (),
-                            ArgumentType::ClientCode(client_code) => (),
-                            ArgumentType::ClientName(client_name) => (),
+                            ArgumentType::ProjectCode(_project_code) => (),
+                            ArgumentType::ClientCode(_client_code) => (),
+                            ArgumentType::ClientName(_client_name) => (),
                             ArgumentType::Current => self.print_current()?,
                             ArgumentType::Active => self.print_active()?,
-                            ArgumentType::New => (),
+                            ArgumentType::New(_input_kind) => (),
                             ArgumentType::Add => (),
                         }
                         println!("programming for different arguments needed")
@@ -196,7 +201,7 @@ impl Program {
         let project_root = project_root.replace("  ", " ");
         match fs::read_dir(project_root){
             Ok(dir) => Ok(dir),
-            Err(message) => Err(String::from("projects root directory not found"))
+            Err(_message) => Err(String::from("projects root directory not found"))
         }
     }
     fn get_project_dir(&self) -> Result<fs::DirEntry, String>{
@@ -466,7 +471,7 @@ impl Program {
         } else if arg.to_lowercase().contains("add") {
             ArgumentType::Add
         } else if arg.to_lowercase().contains("new") {
-            ArgumentType::New
+            ArgumentType::New(ArgumentNewType::Nothing)
         } else {
             ArgumentType::ClientName(String::from(arg))
         }
