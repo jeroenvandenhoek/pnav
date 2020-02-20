@@ -224,38 +224,46 @@ impl Program {
 
         production_paths.for_each(|p|{
             // check if p is a valid directory 
-            let dir: fs::ReadDir = match fs::read_dir(p) {
-                Ok(dir_contents) => dir_contents,
-                Err(_) => panic!("\ndirectory: {}, not found\n", p)
+            let dir: Option<fs::ReadDir> = match fs::read_dir(p) {
+                Ok(dir_contents) => Some(dir_contents),
+                Err(_) => {
+                    println!("\ndirectory: {}, is not mounted\n", p);
+                    None
+                }
             };
 
-            // find directory if and return it
-            let mut dirs: Vec<fs::DirEntry> = dir.filter(| d | {
-                let name_of_dir = d.as_ref()
-                    .unwrap() // this shouldn't be an error
-                    .file_name()
-                    .into_string()
-                    .unwrap(); // if this is an error, it's because a folder in the directory doesn't have 6 or more chars
-                
-                let mut first_six_chars: &str = "";
-                if name_of_dir.len() > 5 {
-                    first_six_chars = &name_of_dir[0..6];
-                };
+            match dir {
+                Some(dir) => {
+                    // find directory if and return it
+                    let mut dirs: Vec<fs::DirEntry> = dir.filter(| d | {
+                        let name_of_dir = d.as_ref()
+                            .unwrap() // this shouldn't be an error
+                            .file_name()
+                            .into_string()
+                            .unwrap(); // if this is an error, it's because a folder in the directory doesn't have 6 or more chars
+                        
+                        let mut first_six_chars: &str = "";
+                        if name_of_dir.len() > 5 {
+                            first_six_chars = &name_of_dir[0..6];
+                        };
 
-                if first_six_chars == self.input.config_active_project.as_ref().expect("no active project present"){
-                    true
-                } else {
-                    false
-                }
-            })
-            .map(| d |{
-                d.unwrap()
-            })
-            .collect();
+                        if first_six_chars == self.input.config_active_project.as_ref().expect("no active project present"){
+                            true
+                        } else {
+                            false
+                        }
+                    })
+                    .map(| d |{
+                        d.unwrap()
+                    })
+                    .collect();
 
-            if dirs.len() != 0 {
-                prod_dir = Some(dirs.remove(0));
-            }
+                    if dirs.len() != 0 {
+                        prod_dir = Some(dirs.remove(0));
+                    }
+                },
+                None => ()
+            };
         });
 
         prod_dir
